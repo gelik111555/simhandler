@@ -12,6 +12,8 @@ public class FileService : ISettingsService
     private readonly IFileSystem _fileSystem;
     private readonly IValidator<OperatorSettings> _validator;
     private readonly ILogger<FileService> _logger;
+    const string _operatorSettingsJsonPath = "Files\\Configurations\\operatorsettings.json";
+
 
     public FileService(IValidator<OperatorSettings> validator, ILogger<FileService> logger)
         : this(null, validator, logger) { }
@@ -41,7 +43,7 @@ public class FileService : ISettingsService
         }
 
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var filePath = Path.Combine(baseDir, "Files\\Configurations\\operatorsettings.json");
+        var filePath = Path.Combine(baseDir, _operatorSettingsJsonPath);
         List<OperatorSettings> existingSettings = new();
         if (File.Exists(filePath))
         {
@@ -52,13 +54,15 @@ public class FileService : ISettingsService
             }
             catch (JsonSerializationException ex)
             {
-                _logger.LogError(ex, "Произошла ошибка при десериализации JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
+                _logger.LogError(ex, "Произошла ошибка при DeserializeObject JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
+                //throw;
             }
         }
-        //// Read existing settings if the file exists
-        //var existingSettings = File.Exists(filePath)
-        //    ? JsonConvert.DeserializeObject<List<OperatorSettings>>(File.ReadAllText(filePath))
-        //    : new List<OperatorSettings>();
+        else
+        {
+            _logger.LogError("Файл {FilePath} не найден.", filePath);
+            throw new FileNotFoundException($"Файл настроек {filePath} не найден.");
+        }
 
         // Update existing settings or add new ones
         foreach (var setting in operatorSettings)
