@@ -12,7 +12,7 @@ public class FileService : ISettingsService
     private readonly IFileSystem _fileSystem;
     private readonly IValidator<OperatorSettings> _validator;
     private readonly ILogger<FileService> _logger;
-    const string _operatorSettingsJsonPath = "Files\\Configurations\\operatorsettings.json";
+    const string _operatorSettingsJsonPath = @"Files\Configurations\operatorsettings.json";
 
 
     public FileService(IValidator<OperatorSettings> validator, ILogger<FileService> logger)
@@ -25,9 +25,23 @@ public class FileService : ISettingsService
     }
     public event EventHandler OperatorSettingsChanged;
 
-    public Task<OperatorSettings> GetSettingsForOperator(string name)
+    public async Task<OperatorSettings?> GetSettingsForOperator(string name)
     {
-        throw new NotImplementedException();
+        // Проверка существования файла настроек
+        if (!_fileSystem.File.Exists(_operatorSettingsJsonPath))
+        {
+            // Можно выбросить исключение или вернуть пустую коллекцию
+            throw new FileNotFoundException("Settings file not found.");
+        }
+
+        // Чтение файла JSON
+        string json = await _fileSystem.File.ReadAllTextAsync(_operatorSettingsJsonPath);
+
+        // Десериализация JSON в список настроек
+        List<OperatorSettings> settings = JsonConvert.DeserializeObject<List<OperatorSettings>>(json);
+
+        // Выбор настроек для определенного оператора
+        return settings.FirstOrDefault(s => s.OperatorName == name);
     }
 
     public async Task SetOrUpdateSettingsForOperator(ICollection<OperatorSettings> operatorSettings)
@@ -45,9 +59,9 @@ public class FileService : ISettingsService
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var filePath = Path.Combine(baseDir, _operatorSettingsJsonPath);
         List<OperatorSettings> existingSettings = new();
-        if (File.Exists(filePath))
+        if (_fileSystem.File.Exists(filePath))
         {
-            var fileContent = File.ReadAllText(filePath);
+            var fileContent = _fileSystem.File.ReadAllText(filePath);
             try
             {
                 existingSettings = JsonConvert.DeserializeObject<List<OperatorSettings>>(fileContent) ?? new List<OperatorSettings>();
@@ -87,3 +101,5 @@ public class FileService : ISettingsService
 
     }
 }
+
+
