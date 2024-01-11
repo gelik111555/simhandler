@@ -47,6 +47,22 @@ public class FileService : ISettingsService
     }
 
     /// <summary>
+    /// Очищает файл конфигурации, удаляя все существующие настройки операторов.
+    /// </summary>
+    /// <returns>Task, представляющий асинхронную операцию.</returns>
+    /// <exception cref="FileNotFoundException">Выбрасывается, если файл конфигурации не найден.</exception>
+    public async Task ClearConfigurationFile()
+    {
+        var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _operatorSettingsJsonPath);
+
+        if (!_fileSystem.File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"Файл настроек не найден по пути: {filePath}");
+        }
+
+        await _fileSystem.File.WriteAllTextAsync(filePath, "[]"); // Оставляет файл пустым или с базовым шаблоном
+    }
+    /// <summary>
     /// Устанавливает или обновляет настройки операторов. Этот метод проверяет каждую настройку на валидность,
     /// обновляет существующие настройки или добавляет новые, и сохраняет их в JSON-файл.
     /// </summary>
