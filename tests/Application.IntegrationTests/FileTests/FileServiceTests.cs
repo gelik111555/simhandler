@@ -70,8 +70,6 @@ public class FileServiceTests
         // Assert
         _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
-
-
     [Test]
     public void SetOrUpdateSettingsForOperator_ValidSettings_ShouldThrowJsonReaderException()
     {
@@ -177,7 +175,6 @@ public class FileServiceTests
         // Act & Assert
         Assert.ThrowsAsync<FileNotFoundException>(() => _fileService.GetSettingsForOperator("TELE2"));
     }
-
     [Test]
     public async Task ClearConfigurationFile_WhenCalled_ShouldEmptyTheFile()
     {
@@ -204,7 +201,6 @@ public class FileServiceTests
         // Assert
         _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), emptyJson, It.IsAny<CancellationToken>()), Times.Once);
     }
-
     [Test]
     public void ClearConfigurationFile_WhenFileDoesNotExist_ShouldThrowFileNotFoundException()
     {
