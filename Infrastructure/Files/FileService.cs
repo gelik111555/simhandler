@@ -24,26 +24,37 @@ public class FileService : ISettingsService
         _logger = logger;
     }
     public event EventHandler OperatorSettingsChanged;
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    /// <exception cref="JsonReaderException"></exception>
     public async Task<OperatorSettings?> GetSettingsForOperator(string name)
     {
-        // Проверка существования файла настроек
         if (!_fileSystem.File.Exists(_operatorSettingsJsonPath))
         {
-            // Можно выбросить исключение или вернуть пустую коллекцию
-            throw new FileNotFoundException("Settings file not found.");
+            throw new FileNotFoundException($"Settings file not found at path: {_operatorSettingsJsonPath}");
         }
 
-        // Чтение файла JSON
         string json = await _fileSystem.File.ReadAllTextAsync(_operatorSettingsJsonPath);
 
-        // Десериализация JSON в список настроек
         List<OperatorSettings> settings = JsonConvert.DeserializeObject<List<OperatorSettings>>(json);
 
         // Выбор настроек для определенного оператора
         return settings.FirstOrDefault(s => s.OperatorName == name);
     }
 
+    /// <summary>
+    /// Устанавливает или обновляет настройки операторов. Этот метод проверяет каждую настройку на валидность,
+    /// обновляет существующие настройки или добавляет новые, и сохраняет их в JSON-файл.
+    /// </summary>
+    /// <param name="operatorSettings">Коллекция настроек операторов для установки или обновления.</param>
+    /// <returns>Task, представляющий асинхронную операцию.</returns>
+    /// <exception cref="ValidationException">Выбрасывается, если какая-либо из предоставленных настроек не проходит валидацию.</exception>
+    /// <exception cref="JsonReaderException">Выбрасывается, если происходит ошибка при десериализации существующего файла настроек. Может указывать на то, что настройки в файле имеют неверный формат.</exception>
+    /// <exception cref="FileNotFoundException">Выбрасывается, если файл настроек не найден в ожидаемом расположении.</exception>
     public async Task SetOrUpdateSettingsForOperator(ICollection<OperatorSettings> operatorSettings)
     {
         foreach (var setting in operatorSettings)
@@ -61,15 +72,15 @@ public class FileService : ISettingsService
         List<OperatorSettings> existingSettings = new();
         if (_fileSystem.File.Exists(filePath))
         {
-            var fileContent = _fileSystem.File.ReadAllText(filePath);
+            var fileContent = await _fileSystem.File.ReadAllTextAsync(filePath);
             try
             {
-                existingSettings = JsonConvert.DeserializeObject<List<OperatorSettings>>(fileContent) ?? new List<OperatorSettings>();
+                existingSettings = TryDeserializeOperatorSettings(fileContent);
             }
-            catch (JsonSerializationException ex)
+            catch (JsonSerializationException){}
+            catch (JsonReaderException)
             {
-                _logger.LogError(ex, "Произошла ошибка при DeserializeObject JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
-                //throw;
+                throw;
             }
         }
         else
@@ -99,6 +110,30 @@ public class FileService : ISettingsService
         // Write the updated settings to the file using IFileSystem abstraction
         await _fileSystem.File.WriteAllTextAsync(filePath, JsonConvert.SerializeObject(existingSettings, Formatting.Indented));
 
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="jsonContent"></param>
+    /// <exception cref="JsonSerializationException"></exception>
+    /// <returns></returns>
+    private List<OperatorSettings> TryDeserializeOperatorSettings(string jsonContent)
+    {
+        try
+        {
+            return JsonConvert.DeserializeObject<List<OperatorSettings>>(jsonContent) ?? new List<OperatorSettings>();
+        }
+        catch (JsonSerializationException ex)
+        {
+            _logger.LogError(ex, "Произошла ошибка при десериализации JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
+            throw;
+        }
+        catch(JsonReaderException ex)
+        {
+            _logger.LogError(ex, "Произошла ошибка при чтения JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
+            throw;
+        }
     }
 }
 
