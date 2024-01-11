@@ -177,6 +177,29 @@ public class FileServiceTests
         // Act & Assert
         Assert.ThrowsAsync<FileNotFoundException>(() => _fileService.GetSettingsForOperator("TELE2"));
     }
+
+    [Test]
+    public async Task ClearConfigurationFile_WhenCalled_ShouldEmptyTheFile()
+    {
+        // Arrange
+        string emptyJson = "[]"; // Предполагаемый пустой JSON
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+
+        // Act
+        await _fileService.ClearConfigurationFile();
+
+        // Assert
+        _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), emptyJson, It.IsAny<CancellationToken>()), Times.Once);
+    }
+    [Test]
+    public void ClearConfigurationFile_WhenFileDoesNotExist_ShouldThrowFileNotFoundException()
+    {
+        // Arrange
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(false);
+
+        // Act & Assert
+        Assert.ThrowsAsync<FileNotFoundException>(() => _fileService.ClearConfigurationFile());
+    }
     private string GetTestSettingsJson()
     {
         var settings = new List<OperatorSettings>
