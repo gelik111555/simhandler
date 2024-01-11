@@ -192,6 +192,20 @@ public class FileServiceTests
         _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), emptyJson, It.IsAny<CancellationToken>()), Times.Once);
     }
     [Test]
+    public async Task CreateConfigurationFileIfNotExist_WhenFileDoesNotExist_ShouldCreateFile()
+    {
+        // Arrange
+        string emptyJson = "[]"; // Предполагаемый пустой JSON для нового файла
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(false);
+
+        // Act
+        await _fileService.CreateConfigurationFileIfNotExist();
+
+        // Assert
+        _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), emptyJson, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public void ClearConfigurationFile_WhenFileDoesNotExist_ShouldThrowFileNotFoundException()
     {
         // Arrange
@@ -200,6 +214,20 @@ public class FileServiceTests
         // Act & Assert
         Assert.ThrowsAsync<FileNotFoundException>(() => _fileService.ClearConfigurationFile());
     }
+    [Test]
+    public async Task CreateConfigurationFileIfNotExist_WhenFileExists_ShouldNotCreateFile()
+    {
+        // Arrange
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+
+        // Act
+        await _fileService.CreateConfigurationFileIfNotExist();
+
+        // Assert
+        _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+
     private string GetTestSettingsJson()
     {
         var settings = new List<OperatorSettings>
