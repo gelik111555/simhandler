@@ -48,7 +48,6 @@ public class FileServiceTests
 
         _fileService = new FileService(_fileSystemMock.Object, _validatorMock.Object, _loggerMock.Object);
     }
-
     [Test]
     public async Task SetOrUpdateSettingsForOperator_ValidSettings_ShouldSaveToFile()
     {
@@ -62,7 +61,9 @@ public class FileServiceTests
                 GetPhoneWithUSSDCodeOrSMS = false
             }
         };
-
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+        _fileSystemMock.Setup(fs => fs.File.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                       .ReturnsAsync(GetTestSettingsJson);
         // Act
         await _fileService.SetOrUpdateSettingsForOperator(settings);
 
@@ -70,6 +71,27 @@ public class FileServiceTests
         _fileMock.Verify(f => f.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+
+    [Test]
+    public void SetOrUpdateSettingsForOperator_ValidSettings_ShouldThrowJsonReaderException()
+    {
+        // Arrange
+        var settings = new List<OperatorSettings>
+        {
+            new() {
+                OperatorName = "TELE2",
+                ActivationUSSD = "*305#",
+                GetPhoneNumberUSSD = "*201#",
+                GetPhoneWithUSSDCodeOrSMS = false
+            }
+        };
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+        _fileSystemMock.Setup(fs => fs.File.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                       .ReturnsAsync(GetTestErrorSettingsJsonInvalidSecondData);
+        
+        // Act & Assert
+        Assert.ThrowsAsync<JsonReaderException>( () => _fileService.SetOrUpdateSettingsForOperator(settings));
+    }
     [Test]
     public async Task SetOrUpdateSettingsForOperator_InvalidSettings_ShouldNotSaveToFileAndLogError()
     {
@@ -113,7 +135,48 @@ public class FileServiceTests
         (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()),
         Times.AtLeastOnce);
     }
+    [Test]
+    public async Task GetSettingsForOperator_WhenOperatorExists_ShouldReturnSettings()
+    {
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+        // Act
+        var result = await _fileService.GetSettingsForOperator("TELE2");
 
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.OperatorName, Is.EqualTo("TELE2"));
+    }
+    [Test]
+    public async Task GetSettingsForOperator_WhenOperatorDoesNotExist_ShouldReturnNull()
+    {
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+        // Act
+        var result = await _fileService.GetSettingsForOperator("NonExistentOperator");
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+    [Test]
+    public void GetSettingsForOperator_WhenJsonIsInvalid_ShouldThrowJsonSerializationException()
+    {
+        //Arrange
+        // Настройка мока для возврата невалидного JSON
+        var invalidJson = "invalid json";
+        _fileSystemMock.Setup(fs => fs.File.ReadAllTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                       .ReturnsAsync(invalidJson);
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(true);
+        // Act & Assert
+        Assert.ThrowsAsync<JsonReaderException>(() => _fileService.GetSettingsForOperator("TELE2"));
+    }
+    [Test]
+    public void GetSettingsForOperator_WhenFileDoesNotExist_ShouldThrowFileNotFoundException()
+    {
+        // Arrange
+        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(false);
+
+        // Act & Assert
+        Assert.ThrowsAsync<FileNotFoundException>(() => _fileService.GetSettingsForOperator("TELE2"));
+    }
     private string GetTestSettingsJson()
     {
         var settings = new List<OperatorSettings>
@@ -122,35 +185,20 @@ public class FileServiceTests
         };
         return JsonConvert.SerializeObject(settings);
     }
-
-    [Test]
-    public async Task GetSettingsForOperator_WhenOperatorExists_ShouldReturnSettings()
+    private string GetTestErrorSettingsJsonInvalidSecondData()
     {
-        // Act
-        var result = await _fileService.GetSettingsForOperator("TELE2");
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.OperatorName, Is.EqualTo("TELE2"));
-    }
-
-    [Test]
-    public async Task GetSettingsForOperator_WhenOperatorDoesNotExist_ShouldReturnNull()
-    {
-        // Act
-        var result = await _fileService.GetSettingsForOperator("NonExistentOperator");
-
-        // Assert
-        Assert.IsNull(result);
-    }
-
-    [Test]
-    public void GetSettingsForOperator_WhenFileDoesNotExist_ShouldThrowFileNotFoundException()
-    {
-        // Arrange
-        _fileSystemMock.Setup(f => f.File.Exists(It.IsAny<string>())).Returns(false);
-        // Act & Assert
-        Assert.ThrowsAsync<FileNotFoundException>(() => _fileService.GetSettingsForOperator("TELE2"));
+        return @"
+    [
+        {
+            ""OperatorName"": ""TELE2"", 
+            ""ActivationUSSD"": ""*305#"",
+            ""GetPhoneNumberUSSD"": ""*201#"",
+            ""GetPhoneWithUSSDCodeOrSMS"": false
+        },
+        {
+           ""djsajskjak""
+        }
+    ]";
     }
 
 }
