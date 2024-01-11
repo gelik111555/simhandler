@@ -13,8 +13,6 @@ public class FileService : ISettingsService
     private readonly IValidator<OperatorSettings> _validator;
     private readonly ILogger<FileService> _logger;
     const string _operatorSettingsJsonPath = @"Files\Configurations\operatorsettings.json";
-
-
     public FileService(IValidator<OperatorSettings> validator, ILogger<FileService> logger)
         : this(null, validator, logger) { }
     public FileService(IFileSystem fileSystem, IValidator<OperatorSettings> validator, ILogger<FileService> logger)
@@ -45,7 +43,20 @@ public class FileService : ISettingsService
         // Выбор настроек для определенного оператора
         return settings.FirstOrDefault(s => s.OperatorName == name);
     }
+    /// <summary>
+    /// Создает файл конфигурации с базовыми настройками, если он не существует.
+    /// </summary>
+    /// <returns>Task, представляющий асинхронную операцию.</returns>
+    public async Task CreateConfigurationFileIfNotExist()
+    {
+        var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _operatorSettingsJsonPath);
 
+        if (!_fileSystem.File.Exists(filePath))
+        {
+            _logger.LogInformation($"Файл настроек не найден. Создание нового файла по пути: {filePath}");
+            await _fileSystem.File.WriteAllTextAsync(filePath, "[]"); // Создает файл с базовым шаблоном или начальными настройками
+        }
+    }
     /// <summary>
     /// Очищает файл конфигурации, удаляя все существующие настройки операторов.
     /// </summary>
@@ -127,7 +138,6 @@ public class FileService : ISettingsService
         await _fileSystem.File.WriteAllTextAsync(filePath, JsonConvert.SerializeObject(existingSettings, Formatting.Indented));
 
     }
-
     /// <summary>
     /// 
     /// </summary>
