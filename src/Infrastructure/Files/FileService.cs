@@ -22,13 +22,7 @@ public class FileService : ISettingsService
         _logger = logger;
     }
     public event EventHandler OperatorSettingsChanged;
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    /// <exception cref="FileNotFoundException"></exception>
-    /// <exception cref="JsonReaderException"></exception>
+    
     public async Task<OperatorSettings?> GetSettingsForOperator(string name)
     {
         if (!_fileSystem.File.Exists(_operatorSettingsJsonPath))
@@ -40,13 +34,9 @@ public class FileService : ISettingsService
 
         List<OperatorSettings> settings = JsonConvert.DeserializeObject<List<OperatorSettings>>(json);
 
-        // Выбор настроек для определенного оператора
         return settings.FirstOrDefault(s => s.OperatorName == name);
     }
-    /// <summary>
-    /// Создает файл конфигурации с базовыми настройками, если он не существует.
-    /// </summary>
-    /// <returns>Task, представляющий асинхронную операцию.</returns>
+
     public async Task CreateConfigurationFileIfNotExist()
     {
         var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _operatorSettingsJsonPath);
@@ -54,14 +44,10 @@ public class FileService : ISettingsService
         if (!_fileSystem.File.Exists(filePath))
         {
             _logger.LogInformation($"Файл настроек не найден. Создание нового файла по пути: {filePath}");
-            await _fileSystem.File.WriteAllTextAsync(filePath, "[]"); // Создает файл с базовым шаблоном или начальными настройками
+            await _fileSystem.File.WriteAllTextAsync(filePath, "[]");
         }
     }
-    /// <summary>
-    /// Очищает файл конфигурации, удаляя все существующие настройки операторов.
-    /// </summary>
-    /// <returns>Task, представляющий асинхронную операцию.</returns>
-    /// <exception cref="FileNotFoundException">Выбрасывается, если файл конфигурации не найден.</exception>
+
     public async Task ClearConfigurationFile()
     {
         var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _operatorSettingsJsonPath);
@@ -71,17 +57,9 @@ public class FileService : ISettingsService
             throw new FileNotFoundException($"Файл настроек не найден по пути: {filePath}");
         }
 
-        await _fileSystem.File.WriteAllTextAsync(filePath, "[]"); // Оставляет файл пустым или с базовым шаблоном
+        await _fileSystem.File.WriteAllTextAsync(filePath, "[]");
     }
-    /// <summary>
-    /// Устанавливает или обновляет настройки операторов. Этот метод проверяет каждую настройку на валидность,
-    /// обновляет существующие настройки или добавляет новые, и сохраняет их в JSON-файл.
-    /// </summary>
-    /// <param name="operatorSettings">Коллекция настроек операторов для установки или обновления.</param>
-    /// <returns>Task, представляющий асинхронную операцию.</returns>
-    /// <exception cref="ValidationException">Выбрасывается, если какая-либо из предоставленных настроек не проходит валидацию.</exception>
-    /// <exception cref="JsonReaderException">Выбрасывается, если происходит ошибка при десериализации существующего файла настроек. Может указывать на то, что настройки в файле имеют неверный формат.</exception>
-    /// <exception cref="FileNotFoundException">Выбрасывается, если файл настроек не найден в ожидаемом расположении.</exception>
+    
     public async Task SetOrUpdateSettingsForOperator(ICollection<OperatorSettings> operatorSettings)
     {
         foreach (var setting in operatorSettings)
@@ -89,7 +67,6 @@ public class FileService : ISettingsService
             var validationResult = _validator.Validate(setting);
             if (!validationResult.IsValid)
             {
-                // Обработка ошибок валидации
                 throw new ValidationException(validationResult.Errors);
             }
         }
@@ -116,34 +93,25 @@ public class FileService : ISettingsService
             throw new FileNotFoundException($"Файл настроек {filePath} не найден.");
         }
 
-        // Update existing settings or add new ones
         foreach (var setting in operatorSettings)
         {
             var existingSetting = existingSettings.FirstOrDefault(s => s.OperatorName == setting.OperatorName);
             if (existingSetting != null)
             {
-                // Update existing setting
                 existingSetting.GetPhoneNumberUSSD = setting.GetPhoneNumberUSSD;
                 existingSetting.ActivationUSSD = setting.ActivationUSSD;
                 existingSetting.GetPhoneWithUSSDCodeOrSMS = setting.GetPhoneWithUSSDCodeOrSMS;
             }
             else
             {
-                // Add new setting
                 existingSettings.Add(setting);
             }
         }
 
-        // Write the updated settings to the file using IFileSystem abstraction
         await _fileSystem.File.WriteAllTextAsync(filePath, JsonConvert.SerializeObject(existingSettings, Formatting.Indented));
 
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="jsonContent"></param>
-    /// <exception cref="JsonSerializationException"></exception>
-    /// <returns></returns>
+
     private List<OperatorSettings> TryDeserializeOperatorSettings(string jsonContent)
     {
         try
@@ -152,7 +120,7 @@ public class FileService : ISettingsService
         }
         catch (JsonSerializationException ex)
         {
-            _logger.LogError(ex, "Произошла ошибка при десериализации JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
+            _logger.LogError(ex, "Произошла ошибка при дессериализации JSON: {ErrorMessage} в файле operatorsettings.json", ex.Message);
             throw;
         }
         catch(JsonReaderException ex)
