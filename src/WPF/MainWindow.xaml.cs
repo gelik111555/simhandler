@@ -1,28 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Application.Common.Interfaces;
 using System.Threading.Tasks;
+using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
-namespace WPF
+namespace WPF;
+
+public partial class MainWindow : Window
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    private readonly IMainDataGridHandler _mainDataGridHandler;
+
+    public MainWindow(IMainDataGridHandler mainDataGridHandler)
     {
-        public MainWindow()
+        InitializeComponent();
+        _mainDataGridHandler = mainDataGridHandler;
+        LoadDataAsync();
+    }
+
+    private async void LoadDataAsync()
+    {
+        try
         {
-            InitializeComponent();
+            await Task.Run(() =>
+            {
+                _mainDataGridHandler.Handle();
+            });
+        }
+        catch (Exception ex)
+        {
+            // Обработка исключений
+            Dispatcher.Invoke(() =>
+            {
+                // Показать сообщение об ошибке или логировать
+            });
         }
     }
 }
