@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using System;
 using System.Configuration;
 using System.IO;
@@ -18,9 +19,9 @@ public partial class App : System.Windows.Application
 {
     public static bool IsDesignMode { get; private set; } = true;
 
-    private static IHost __Host;
+    private static IHost _Host;
 
-    public static IHost Host => __Host ??= Program.CreateHostBuilder(Environment.GetCommandLineArgs()).Build();
+    public static IHost Host => _Host ??= Program.CreateHostBuilder(Environment.GetCommandLineArgs()).Build();
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -38,10 +39,12 @@ public partial class App : System.Windows.Application
             }
             catch (Exception ex)
             {
-                // Обработка исключений
+                
             }
         }
         await host.StartAsync().ConfigureAwait(false);
+        var mainWindow = host.Services.GetRequiredService<MainWindow>();
+        mainWindow.Show();
     }
 
     void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
@@ -57,11 +60,12 @@ public partial class App : System.Windows.Application
         var host = Host;
         await host.StopAsync().ConfigureAwait(false);
         host.Dispose();
-        __Host.Dispose();
+        _Host.Dispose();
     }
 
     public static void ConfigureServices(HostBuilderContext host, IServiceCollection services)
     {
+        services.AddApplicationServices(host.Configuration);
         services.AddInfrastructureServices(host.Configuration);
         services.AddUIServices();
     }
