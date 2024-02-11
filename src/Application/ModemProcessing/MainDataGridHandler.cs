@@ -1,5 +1,4 @@
 ﻿using Application.Common.Interfaces;
-using Application.Common.Models;
 using Application.Common.Models.ModemView;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
